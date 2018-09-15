@@ -1,23 +1,31 @@
 
 # MVP EDA Airbnb Paris
 
-## Background
+### Background
 
 When traveling to Europe and booking an Airbnb rental property for a vacation, I try to spend less on lodging to be able to afford good dining and tours.  For Paris specifically, I find that the options close to the centre, that is close to the top attractions i.e. Eiffel tower, Champs Elysees are pricier, and most of the properties are unavailable as well, so I end up staying further from the centre, and when I do, I am always worried that I might have booked a property that is way too far out from the centre of the city, and or far from a metro station -- since actual location is not provided until after you have made the reservation, or unless you contact host and ask.  Distance to the station is relative depending on how far one is willing to walk, but for me, more than a mile to a station is considered far, since I feel I have to save all my energy for the leisurely walking one does around Paris.
 
-## Questions for Exploration / Goals:
+### Questions for Exploration / Goals:
 
 
-1) to be able to explore and answer the following questions:
+#### A.  Explore the following questions:
 
-* How does location influence property rental price, reviews and availability?  
+ 1) How does location influence property rental price?  
 
-* What other features drive the price of an airbnb rental property?
+* What features drive the price of an airbnb rental property? i.e. price vs location, price vs distance from a top attraction, etc.
+  
+  
+* are the differences in price in the different arrondissements statistically significant?
 
-  i.e. price vs location, price vs distance from a top attraction, etc.
+ 2) Can we model the airbnb rental property prices based on the features, i.e. location, distance to attraction, number of bedrooms, etc.?
+   
+ 3) What features drive the availability of an Airbnb property?
 
+  
+ 4) Can we model and predict that the property will be available for more than 5 days within the next 30 days based on the features available?
 
-2) recommend Airbnb properties given a certain criteria, and enable a more informed decision for the traveler:
+#### B.  Recommend Airbnb properties based on a specified set of features
+
 
 * walking distance to one of the top attractions (within 2 miles)
 * walking distance to metro station (within 1 mile)
@@ -29,7 +37,53 @@ When traveling to Europe and booking an Airbnb rental property for a vacation, I
 * price range
 * type of property
 
-## Initial Exploration
+### Limitations
+* the Airbnb data from OpenDataSoft was last updated in 2017, availability information will be based on what has been captured from the last update.
+* Historical data for the property prices and availabity are not available, so we are unable to check for variability of price and availability on different seasons/time.
+* For computing distances Haversine formula was used, which would be a good estimate for computing the distance between two points, but this distance could be different from the actual walking distance.
+
+![Project Flow Chart](images/Airbnb_project_flow.png)
+
+
+### Cleaning the Data
+
+The geojson file format was read and used for this analysis. The original download file has eighty-six (86) columns, columns which are not needed for analysis, i.e. calendar_last_scraped, calendar_updated, listing_url, etc. were dropped to minimize columns and focus on cleaning and analysis of data which will be useful this EDA.
+
+The 'city' column was dropped from the file as well, since all the records downloaded are those pertaining to Airbnb rental properties in Paris, France.
+
+Further research on zipcodes was done, and found that zipcodes 75001 - 75020 correspond to Arrondissements 1 through 20 in Paris.  Since analysis will be focused on properties within the centre of Paris, the records with zipcodes outside of this range were deleted.
+
+*More information on Paris Arrondissements in wikipedia: https://en.wikipedia.org/wiki/Arrondissements_of_Paris
+
+### Missing Values:
+Missing values in beds and bedrooms were imputed using the following rules:
+* If 'beds' has a missing value, and 'bedrooms' has a valid value, 'beds' is set with the value of 'bedrooms'.
+* If both 'bedrooms' and 'beds' are missing, both fields are set to 1, which is the average number of beds and bedrooms,
+and it would be safe to assume that if a property is being rented out in Airbnb, that there is at least one bed, and we will count that as one bedroom, regardless if the property is a studio apartment, where there is no pyhsical division between the rooms.
+
+There were several records as well with missing 'scores' value, a new column 'rating_ind' was created to flag rated = 1, versus unrated = 0 records, so further analysis can be done between these two populations.  The record was flagged as rated, if all the score values have been populated, and set to unrated, if at least one of the score values has not been populated.
+
+The following fields were added to the dataset as well:
+
+<br>1) arrondissement - this was derived from the last two digits of the zipcode
+
+2) arrond_name - arrondissement name was populated and compared with the values populated in the neighbourhood_cleansed field.  There were some differences found, since no information is available on how the neighbourhood_cleansed field was derived, for the sake of consistency with the categorizing by Arrondissement, the arrond_name will be used for analysis instead of the neighbourhood_cleansed field.  
+
+
+3) A column for each of the Distances between the Airbnb property and each of the [2018 top 10 attractions in Paris](https://www.tripadvisor.com/Attractions-g187147-Activities-Paris_Ile_de_France.html#ATTRACTION_SORT_WRAPPER) were derived as well using the [Haversine forumla](https://community.esri.com/groups/coordinate-reference-systems/blog/2017/10/05/haversine-formula), and these features were used to analyze and determine relationship with the rental property price.
+
+["Musee d’Orsay", "Sainte-Chapelle", "Palais Garnier - Opera", "Notre Dame Cathedral", "Musee de l’Orangerie", "Luxembourg Gardens", "Louvre", "Eiffel", "Pont Alexandre III", "Le Marais"]
+
+4) close_to_attraction - this is an indicator if the property is within 2 miles of one of the top 10 attractions
+
+5) closest_attraction - this is the attraction closest to the Airbnb property
+
+6) attraction_dist - distance between the Airbnb property and the closest attraction.
+
+7) site_count - number of attractions within 1 mile of the Airbnb property
+
+
+### Initial Exploration
 
 Plotting the property prices out, shows us that the price of Airbnb rental properties in Paris  have a unimodal distribution, which is right skewed.  We can see from the graph below it shows that majority of the properties are rented out are below \$200, with the average below \$100 which is at \$94.79, with the median only at $75.  We can see that there are some outliers -- properties over \$400, causing a huge difference between the mean and the median price, and for the distribution to be right skewed.
 
@@ -58,7 +112,7 @@ The graph on Prices by Arrondissement shows that property prices are highest in 
 
 ![By Arr](images/airbnb_avail_byArr.png)
 
-## Initial Research Findings
+### Initial Research Findings
 
 Based on initial Exploratory Analysis, we can see that:
 
@@ -67,7 +121,7 @@ Based on initial Exploratory Analysis, we can see that:
 * the properties in the lower Arrondissements, those closest to the top attractions cost more on average compared to the properties in the higher arrondissements.
 
 
-## Further Research and Analysis
+### Further Research and Analysis
 
 * Further explore properties in the desired criteria:
 <br> properties less than \$100/night
@@ -80,9 +134,7 @@ Based on initial Exploratory Analysis, we can see that:
 
 * Recommend top 20 properties given a certain criteria
 
-### Limitations
-* the Airbnb data from OpenDataSoft was last updated in 2017
-* Historical data for the property prices and availabity are not available, so we are unable to check for variability of price and availability on different seasons/time.
+
 
 
 ```python
